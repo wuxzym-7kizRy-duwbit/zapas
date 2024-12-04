@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Игра "Память"</title>
+  <style>
+    /* Общие стили для страницы */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Arial', sans-serif;
+      background-color: #34495e; /* Однотонный фон (темно-серый цвет) */
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      color: white;
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 20px;
+      text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.7);
+    }
+
+    .game-board {
+      display: grid;
+      grid-template-columns: repeat(4, 150px);
+      grid-gap: 10px;
+      max-width: 700px;
+      margin: 0 auto;
+      justify-items: center;
+    }
+
+    .card {
+      width: 120px;
+      height: 120px;
+      background-color: #3498db; /* Синий цвет для карточки */
+      border-radius: 10px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      transition: transform 0.3s, background-color 0.3s;
+    }
+
+    .card.flip {
+      transform: rotateY(180deg);
+      background-color: #f39c12; /* Оранжевый цвет, когда карта перевернута */
+    }
+
+    .card img {
+      font-size: 3rem; /* Размер эмодзи */
+      display: none;
+    }
+
+    .card.flip img {
+      display: block;
+    }
+
+    .card.matched {
+      background-color: #2ecc71; /* Зеленый цвет для найденных пар */
+      cursor: not-allowed;
+    }
+
+    .message {
+      margin-top: 20px;
+      font-size: 1.5rem;
+      color: white;
+      font-weight: bold;
+    }
+
+    .button {
+      margin-top: 30px;
+      padding: 10px 20px;
+      background-color: #e74c3c;
+      border: none;
+      border-radius: 5px;
+      color: white;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    .button:hover {
+      background-color: #c0392b;
+    }
+  </style>
+</head>
+<body>
+
+  <div>
+    <h1>Игра "Память"</h1>
+    <div class="game-board" id="game-board"></div>
+    <p class="message" id="message"></p>
+    <button class="button" id="reset-button">Начать заново</button>
+  </div>
+
+  <script>
+    const images = [
+      '🍎', '🍎',
+      '🍌', '🍌',
+      '🍇', '🍇',
+      '🍉', '🍉',
+      '🍊', '🍊',
+      '🍓', '🍓',
+      '🍍', '🍍'
+    ];
+
+    let board = document.getElementById('game-board');
+    let message = document.getElementById('message');
+    let resetButton = document.getElementById('reset-button');
+    let cards = [];
+    let flippedCards = [];
+    let matchedCards = 0;
+    let lockBoard = false;
+
+    // Функция для перемешивания карт
+    function shuffle(array) {
+      let currentIndex = array.length, randomIndex, temporaryValue;
+      while (currentIndex !== 0) {
+        randomIndex = Math.floor(Math.random() * currentIndex);
+        currentIndex -= 1;
+        temporaryValue = array[currentIndex];
+        array[currentIndex] = array[randomIndex];
+        array[randomIndex] = temporaryValue;
+      }
+      return array;
+    }
+
+    // Функция для создания карточек
+    function createCards() {
+      let shuffledImages = shuffle([...images]);  // Перемешиваем массив карт
+
+      // Очищаем доску перед рендером
+      board.innerHTML = '';
+
+      // Создаем карточки
+      shuffledImages.forEach((image, index) => {
+        let card = document.createElement('div');
+        card.classList.add('card');
+        card.setAttribute('data-id', index);
+        card.setAttribute('data-image', image);
+
+        let img = document.createElement('div');
+        img.classList.add('image');
+        img.textContent = image;
+
+        card.appendChild(img);
+        board.appendChild(card);
+
+        // Добавляем карточку в массив
+        cards.push(card);
+      });
+    }
+
+    // Функция для переворачивания карты
+    function flipCard(card) {
+      if (lockBoard || card.classList.contains('flip') || card.classList.contains('matched')) return;
+
+      card.classList.add('flip');
+      flippedCards.push(card);
+
+      if (flippedCards.length === 2) {
+        checkMatch();
+      }
+    }
+
+    // Функция для проверки совпадения карт
+    function checkMatch() {
+      let [firstCard, secondCard] = flippedCards;
+
+      if (firstCard.dataset.image === secondCard.dataset.image) {
+        firstCard.classList.add('matched');
+        secondCard.classList.add('matched');
+        matchedCards += 2;
+        flippedCards = [];
+        if (matchedCards === cards.length) {
+          message.textContent = 'Вы выиграли!';
+        }
+      } else {
+        lockBoard = true;
+        setTimeout(() => {
+          firstCard.classList.remove('flip');
+          secondCard.classList.remove('flip');
+          flippedCards = [];
+          lockBoard = false;
+        }, 1000);
+      }
+    }
+
+    // Функция для сброса игры
+    function resetGame() {
+      cards = [];
+      flippedCards = [];
+      matchedCards = 0;
+      lockBoard = false;
+      message.textContent = '';
+      createCards();
+    }
+
+    // Слушаем клики по картам
+    board.addEventListener('click', (event) => {
+      if (event.target.classList.contains('card')) {
+        flipCard(event.target);
+      }
+    });
+
+    // Инициализация игры
+    createCards();
+
+    // Добавление обработчика для кнопки "Начать заново"
+    resetButton.addEventListener('click', resetGame);
+
+  </script>
+
+</body>
+</html>
